@@ -9,14 +9,13 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('postcodes', function (Blueprint $table) {
-            $table->id();
-            $table->string('postcode');
-            $table->geometry('location', subtype: 'point');
+            $table->string('postcode')->primary();  // This assumes 'postcode' is the unique key
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
             $table->timestamps();
-            $table->spatialIndex('location');
         });
     }
 

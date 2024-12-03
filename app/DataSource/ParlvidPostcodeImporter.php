@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
-class ParlvidPostcodeImporter extends  AbstractPostcodeImporter
+class ParlvidPostcodeImporter extends AbstractPostcodeImporter
 {
     const IDENTIFIER = 'parlvid';
     const DATASOURCE = 'https://parlvid.mysociety.org/os/ONSPD/2022-11.zip';
@@ -24,41 +24,61 @@ class ParlvidPostcodeImporter extends  AbstractPostcodeImporter
     public function fetchData()
     {
         $zipFilePath = storage_path('app/temp/parlvid.zip');
-        $extractPath = storage_path('app/temp/extracted');
-
 
         try {
-            // Fetch data from external URL
+
             $response = Http::withOptions(['stream' => true])->get(self::DATASOURCE);
 
-            // Check if the response was successful
             if ($response->failed()) {
                 throw new \Exception('Failed to download the ZIP file.');
             }
 
-            // Open the file for writing in binary mode
             $fileStream = fopen($zipFilePath, 'wb');
+
             if ($fileStream === false) {
                 throw new \Exception('Failed to open file for writing.');
             }
 
             while (!$response->getBody()->eof()) {
-                fwrite($fileStream, $response->getBody()->read(1024 * 8));
+                fwrite($fileStream, $response->getBody()->read(1024 * 1024));
             }
+
             fclose($fileStream);
             $csvFiles = $this->extractZip($zipFilePath);
 
             foreach ($csvFiles as $csvFilePath) {
 
-                $import = new PostcodesImport();
-                Excel::import($import, $csvFilePath);
+                $file = new \SplFileObject($csvFilePath);
+                $file->setFlags(\SplFileObject::READ_CSV);
 
-                foreach ($import->getChunks() as $chunk) {
-                    yield $chunk;
+
+                $headers = null;
+                $chunkSize = 1000;
+                $chunk = [];
+
+                foreach ($file as $row) {
+                    if ($row === [null]) {
+                        continue;
+                    }
+
+                    if ($headers === null) {
+                        $headers = $row;
+                        continue;
+                    }
+
+                    $rowAssoc = array_combine($headers, $row);
+                    $chunk[] = $rowAssoc;
+
+                    if (count($chunk) >= $chunkSize) {
+                        yield $chunk;
+                        exit;
+                        $chunk = [];
+                    }
                 }
 
-                unlink($csvFilePath);
-                gc_collect_cycles();
+                if (count($chunk) > 0) {
+                    yield $chunk;
+                }
             }
         } catch (\Exception $e) {
             // Log the error
@@ -70,10 +90,6 @@ class ParlvidPostcodeImporter extends  AbstractPostcodeImporter
             if (file_exists($zipFilePath)) {
                 unlink($zipFilePath);
             }
-
-//            if (file_exists($extractPath)) {
-//                unlink($extractPath);
-//            }
         }
     }
 
@@ -89,16 +105,16 @@ class ParlvidPostcodeImporter extends  AbstractPostcodeImporter
     {
         $zip = new \ZipArchive();
 
-        if ($zip->open($zipFilePath) === true) {
-            $extractPath= storage_path('app/temp/extracted/');
+       // if ($zip->open($zipFilePath) === true) {
+            $extractPath = storage_path('app/temp/extracted/');
             if (!is_dir($extractPath)) {
                 mkdir($extractPath, 0777, true);
             }
 
-            $zip->extractTo($extractPath);
-            $zip->close();
+//            $zip->extractTo($extractPath);
+//            $zip->close();
 
-            $csvPath = storage_path('app/temp/extracted/Data/multi_csv/');
+            $csvPath = storage_path('app/temp/extracted/Data/multi_csv');
             // Get all extracted files
             $extractedFiles = scandir($csvPath);
 
@@ -116,10 +132,11 @@ class ParlvidPostcodeImporter extends  AbstractPostcodeImporter
             }
 
             return $csvFiles;
-        }
+       // }
 
-        throw new \Exception('Failed to open the ZIP file.');
+        //throw new \Exception('Failed to open the ZIP file.');
     }
+
 
     protected function getMapper()
     {

@@ -20,7 +20,7 @@ class PostcodesImport implements OnEachRow, WithChunkReading, WithHeadingRow
 
     public function chunkSize(): int
     {
-        return 1000;
+        return 100;
     }
 
     public function getChunks()

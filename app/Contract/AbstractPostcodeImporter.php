@@ -17,12 +17,12 @@ abstract class AbstractPostcodeImporter
      */
     public function import(): void
     {
+
         foreach ($this->fetchData() as $chunk) {
             try {
-                $validatedData = $this->normalizeData($chunk);
-                var_dump($validatedData);
-
-                //PostCodeImportJob::dispatch($validatedData);
+                $chunkedData = collect($chunk);
+                $validatedData = $this->normalizeData($chunkedData);
+                PostCodeImportJob::dispatch($validatedData);
             } catch (\Exception $e) {
                 Log::error("Failed to dispatch job for a chunk of data", [
                     'error' => $e->getMessage(),
@@ -51,6 +51,7 @@ abstract class AbstractPostcodeImporter
     public function normalizeData(Collection $rawData): Collection
     {
         $mapper = $this->getMapper();
+
         return $rawData->map(function ($item) use ($mapper) {
             return [
                 'postcode'  => strtoupper($item[$mapper['postcode']]),
