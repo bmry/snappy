@@ -9,6 +9,7 @@
         "php": "^8.2",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
+        "maatwebsite/excel": "^3.1",
         "matanyadaev/laravel-eloquent-spatial": "^4.4"
     },
     "require-dev": {
