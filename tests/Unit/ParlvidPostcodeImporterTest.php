@@ -18,14 +18,10 @@ class ParlvidPostcodeImporterTest extends TestCase
     public function testFetchData()
     {
         Storage::fake('local');
-
-        // 1. Create the necessary directory structure for extracted data
         $this->createExtractedDirectory();
 
-        // 2. Create a mock ZIP file for testing
         $zipFilePath = $this->createMockZipFile();
 
-        // 3. Mock Http request and other dependencies
         $mockHttpClient = Mockery::mock('alias:Illuminate\Support\Facades\Http');
         $mockHttpClient->shouldReceive('withOptions')
             ->andReturnSelf();
@@ -38,6 +34,7 @@ class ParlvidPostcodeImporterTest extends TestCase
                 ])
             ]));
 
+
         $mockCountry = Mockery::mock(Country::class);
         $mockCountry->shouldReceive('getByCodeWithCache')
             ->andReturn((object)['id' => 1]);
@@ -45,8 +42,9 @@ class ParlvidPostcodeImporterTest extends TestCase
         $this->app->instance(Country::class, $mockCountry);
 
         $importer = new ParlvidPostcodeImporter($zipFilePath, $mockHttpClient);
+        $importer->setExtractionDirectory('tests/Unit/temp');
+        $importer->setCsvPath('tests/Unit/temp/extracted/Data/multi_csv/');
         $chunks = iterator_to_array($importer->fetchData());
-
 
         $this->assertCount(1, $chunks);
 
@@ -59,15 +57,14 @@ class ParlvidPostcodeImporterTest extends TestCase
 
     protected function createExtractedDirectory()
     {
-        $extractedDirectory = storage_path('app/temp/extracted/Data/multi_csv/');
+        $extractedDirectory = storage_path('tests/Unit/temp/extracted/Data/multi_csv/');
         if (!is_dir($extractedDirectory)) {
-            mkdir($extractedDirectory, 0777, true);  // Creates the directory and all parent directories if they don't exist
+            mkdir($extractedDirectory, 0777, true);
         }
     }
 
     protected function createMockZipFile()
     {
-        // 1. Create a simple CSV file content
         $csvContent = [
             ['pcd', 'long', 'lat', 'country_id'],
             ['AB1 0AA', '-0.12345', '51.12345', '1'],
@@ -75,21 +72,18 @@ class ParlvidPostcodeImporterTest extends TestCase
             ['AB1 0AC', '-0.12347', '51.12347', '1'],
         ];
 
-        // 2. Write CSV content to a temporary file
-        $csvFilePath = storage_path('app/temp/mock_data.csv');
+        $csvFilePath = storage_path('tests/Unit/temp/mock_data.csv');
         $file = fopen($csvFilePath, 'w');
         foreach ($csvContent as $line) {
             fputcsv($file, $line);
         }
         fclose($file);
 
-        // 3. Move the CSV file to the expected location
-        $extractedDirectory = storage_path('app/temp/extracted/Data/multi_csv/');
+        $extractedDirectory = storage_path('tests/Unit/temp/extracted/Data/multi_csv/');
         $mockCsvFilePath = $extractedDirectory . 'mock_data.csv';
-        copy($csvFilePath, $mockCsvFilePath);  // Copy the mock CSV into the new directory
+        copy($csvFilePath, $mockCsvFilePath);
 
-        // 4. Create a ZIP file and add the CSV file to it
-        $zipFilePath = storage_path('app/temp/mock_parlvid.zip');
+        $zipFilePath = storage_path('tests/Unit/temp/mock_parlvid.zip');
         $zip = new \ZipArchive();
 
         if ($zip->open($zipFilePath, \ZipArchive::CREATE) === true) {

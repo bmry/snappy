@@ -13,6 +13,10 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
     const IDENTIFIER = 'parlvid';
     const DATASOURCE = 'https://parlvid.mysociety.org/os/ONSPD/2022-11.zip';
 
+    protected $csvPath = 'app/temp/extracted/Data/multi_csv';
+
+    protected $extractionDirectory = 'app/temp/extracted/';
+
     protected $dataSource;
 
     /**
@@ -130,7 +134,7 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
         $zip = new \ZipArchive();
 
         if ($zip->open($zipFilePath) === true) {
-            $extractPath = storage_path('app/temp/extracted/');
+            $extractPath = storage_path($this->extractionDirectory);
             if (!is_dir($extractPath)) {
                 mkdir($extractPath, 0777, true);
             }
@@ -138,7 +142,7 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
             $zip->extractTo($extractPath);
             $zip->close();
 
-            $csvPath = storage_path('app/temp/extracted/Data/multi_csv');
+            $csvPath = storage_path($this->csvPath);
             $extractedFiles = scandir($csvPath);
 
             $csvFiles = [];
@@ -167,5 +171,15 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
             'latitude' => 'lat',
             'country_id' => 'country_id'
         ];
+    }
+
+    public function setExtractionDirectory(string $extractionDir): void
+    {
+        $this->extractionDirectory = $extractionDir;
+    }
+
+    public function setCsvPath(string $csvPath): void
+    {
+        $this->csvPath = $csvPath;
     }
 }

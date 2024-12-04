@@ -21,7 +21,7 @@ class StoreService
      * @param int $perPage
      * @return array
      */
-    public function getNearbyStores(string $postcode, int $radius = 5000, bool $delivery = false, int $perPage = 10): array
+    public function getNearbyStores(string $postcode, int $radius = 5000, string $delivery = 'false', int $perPage = 10): array
     {
         $cacheKey = 'stores_near_' . $postcode;
 
@@ -31,11 +31,12 @@ class StoreService
         }
 
         $postcodeRecord = Postcode::where('postcode', $postcode)->first();
+
         if (!$postcodeRecord) {
             throw new \Exception('Postcode not found.');
         }
 
-        $location = new Point($postcodeRecord->latitude, $postcodeRecord->longitude);
+        $location = new Point(floatval($postcodeRecord->latitude), floatval($postcodeRecord->longitude));
 
         $stores = $this->fetchStores($location, $radius, $delivery, $perPage);
 
@@ -62,9 +63,10 @@ class StoreService
      * @param int $perPage
      * @return CursorPaginator
      */
-    protected function fetchStores(Point $location, int $radius, bool $delivery, int $perPage): CursorPaginator
+    protected function fetchStores(Point $location, int $radius, string $delivery, int $perPage): CursorPaginator
     {
-        if ($delivery) {
+        if ('true' === $delivery) {
+
             return Store::query()
                 ->withDistanceSphere('location', $location)
                 ->whereRaw('ST_Distance_Sphere(location, ST_GeomFromText(?, 0)) <= max_delivery_distance', [
