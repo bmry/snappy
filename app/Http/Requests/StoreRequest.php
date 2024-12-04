@@ -24,16 +24,18 @@ class StoreRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'location.*' => 'numeric',
-            'status' => 'required|in:open,closed',
-            'type' => 'required|in:takeaway,shop,restaurant',
-            'max_delivery_distance' => 'required|integer|min:1',
+            'location.0' => 'required|numeric',
+            'location.1' => 'required|numeric',
             'location' => [
                 'required',
                 'array',
                 'size:2',
+                'min:2',
                 new UniqueCoordinatesAndStoreName(),
             ],
+            'status' => 'required|in:open,closed',
+            'type' => 'required|in:takeaway,shop,restaurant',
+            'max_delivery_distance' => 'required|integer|min:1',
         ];
     }
 

@@ -3,17 +3,28 @@
 namespace App\DataSource;
 
 use App\Contract\AbstractPostcodeImporter;
-use App\Imports\PostcodesImport;
 use App\Models\Country;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
+use Psr\Http\Message\StreamInterface;
 
-final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
+class ParlvidPostcodeImporter extends AbstractPostcodeImporter
 {
     const IDENTIFIER = 'parlvid';
     const DATASOURCE = 'https://parlvid.mysociety.org/os/ONSPD/2022-11.zip';
 
+    protected $dataSource;
+
+    /**
+     * Constructor
+     *
+     * @param mixed $dataSource Either a URL or a local file path to the ZIP file
+     */
+    public function __construct(string $dataSource = null)
+    {
+        $this->dataSource = $dataSource ?: self::DATASOURCE;
+    }
 
     /**
      * Fetch data from the external source by downloading and extracting a ZIP file.
@@ -27,31 +38,19 @@ final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
         $zipFilePath = storage_path('app/temp/parlvid.zip');
 
         try {
-
-            $response = Http::withOptions(['stream' => true])->get(self::DATASOURCE);
-
-            if ($response->failed()) {
-                throw new \Exception('Failed to download the ZIP file.');
+            // If the data source is a URL, use HTTP to fetch the file. If it's a path, use the file directly.
+            if (filter_var($this->dataSource, FILTER_VALIDATE_URL)) {
+                $this->downloadZipFile($zipFilePath);
+            } else {
+                // Assume it's a local file path for testing purposes
+                copy($this->dataSource, $zipFilePath);
             }
 
-            $fileStream = fopen($zipFilePath, 'wb');
-
-            if ($fileStream === false) {
-                throw new \Exception('Failed to open file for writing.');
-            }
-
-            while (!$response->getBody()->eof()) {
-                fwrite($fileStream, $response->getBody()->read(1024 * 1024));
-            }
-
-            fclose($fileStream);
             $csvFiles = $this->extractZip($zipFilePath);
 
             foreach ($csvFiles as $csvFilePath) {
-
                 $file = new \SplFileObject($csvFilePath);
                 $file->setFlags(\SplFileObject::READ_CSV);
-
 
                 $headers = null;
                 $chunkSize = 1000;
@@ -73,7 +72,6 @@ final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
 
                     if (count($chunk) >= $chunkSize) {
                         yield $chunk;
-                        exit;
                         $chunk = [];
                     }
                 }
@@ -83,7 +81,6 @@ final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
                 }
             }
         } catch (\Exception $e) {
-            // Log the error
             Log::error("Failed to fetch or process data", [
                 'error' => $e->getMessage()
             ]);
@@ -95,6 +92,32 @@ final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
         }
     }
 
+    /**
+     * Downloads the ZIP file from the specified URL.
+     *
+     * @param string $zipFilePath Path where the file should be saved
+     * @throws \Exception If download fails
+     */
+    protected function downloadZipFile($zipFilePath)
+    {
+        $response = Http::withOptions(['stream' => true])->get($this->dataSource);
+
+        if ($response->failed()) {
+            throw new \Exception('Failed to download the ZIP file.');
+        }
+
+        $fileStream = fopen($zipFilePath, 'wb');
+
+        if ($fileStream === false) {
+            throw new \Exception('Failed to open file for writing.');
+        }
+
+        while (!$response->getBody()->eof()) {
+            fwrite($fileStream, $response->getBody()->read(1024 * 1024));
+        }
+
+        fclose($fileStream);
+    }
 
     /**
      * Extracts the ZIP file and returns a list of CSV file paths.
@@ -107,23 +130,21 @@ final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
     {
         $zip = new \ZipArchive();
 
-       // if ($zip->open($zipFilePath) === true) {
+        if ($zip->open($zipFilePath) === true) {
             $extractPath = storage_path('app/temp/extracted/');
             if (!is_dir($extractPath)) {
                 mkdir($extractPath, 0777, true);
             }
 
-//            $zip->extractTo($extractPath);
-//            $zip->close();
+            $zip->extractTo($extractPath);
+            $zip->close();
 
             $csvPath = storage_path('app/temp/extracted/Data/multi_csv');
-            // Get all extracted files
             $extractedFiles = scandir($csvPath);
 
             $csvFiles = [];
 
             foreach ($extractedFiles as $file) {
-                // If the file is a CSV file, add it to the list
                 if (strpos($file, '.csv') !== false) {
                     $csvFiles[] = $csvPath . DIRECTORY_SEPARATOR . $file;
                 }
@@ -134,11 +155,10 @@ final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
             }
 
             return $csvFiles;
-       // }
+        }
 
-        //throw new \Exception('Failed to open the ZIP file.');
+        throw new \Exception('Failed to open the ZIP file.');
     }
-
 
     protected function getMapper()
     {

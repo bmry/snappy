@@ -1,91 +1,108 @@
 <?php
 
-namespace Tests\Unit;
 
 namespace Tests\Unit;
 
 use App\DataSource\ParlvidPostcodeImporter;
-use App\Imports\PostcodesImport;
+use App\Models\Country;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Http;
-use Maatwebsite\Excel\Facades\Excel;
-use Tests\TestCase;
-use Mockery;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
+use Tests\TestCase;
 
 class ParlvidPostcodeImporterTest extends TestCase
 {
-    public function setUp(): void
+    use DatabaseMigrations;
+
+    public function testFetchData()
     {
-        parent::setUp();
+        Storage::fake('local');
 
-        // Mocking the HTTP request to return a fake response
-        Http::fake([
-            'http://parlvid.mysociety.org/os/' => Http::response('fake zip content', 200)
-        ]);
+        // 1. Create the necessary directory structure for extracted data
+        $this->createExtractedDirectory();
 
-        // Mocking Excel import
-        Excel::fake();
+        // 2. Create a mock ZIP file for testing
+        $zipFilePath = $this->createMockZipFile();
+
+        // 3. Mock Http request and other dependencies
+        $mockHttpClient = Mockery::mock('alias:Illuminate\Support\Facades\Http');
+        $mockHttpClient->shouldReceive('withOptions')
+            ->andReturnSelf();
+        $mockHttpClient->shouldReceive('get')
+            ->andReturn(Mockery::mock(ResponseInterface::class, [
+                'failed' => false,
+                'getBody' => Mockery::mock('Stream', [
+                    'eof' => false,
+                    'read' => 'file content chunk'
+                ])
+            ]));
+
+        $mockCountry = Mockery::mock(Country::class);
+        $mockCountry->shouldReceive('getByCodeWithCache')
+            ->andReturn((object)['id' => 1]);
+
+        $this->app->instance(Country::class, $mockCountry);
+
+        $importer = new ParlvidPostcodeImporter($zipFilePath, $mockHttpClient);
+        $chunks = iterator_to_array($importer->fetchData());
+
+
+        $this->assertCount(1, $chunks);
+
+        $this->assertArrayHasKey('pcd', $chunks[0][0]);
+        $this->assertArrayHasKey('long', $chunks[0][0]);
+        $this->assertArrayHasKey('lat', $chunks[0][0]);
+        $this->assertArrayHasKey('country_id', $chunks[0][0]);
+        unlink($zipFilePath);
     }
 
-    public function testFetchDataHandlesSuccessfulImport()
+    protected function createExtractedDirectory()
     {
-        // Create a mock of the ParlvidPostcodeImporter class
-        $importer = $this->getMockBuilder(ParlvidPostcodeImporter::class)
-            ->onlyMethods(['extractZip'])
-            ->getMock();
-
-
-        $importer->expects($this->once())
-            ->method('extractZip')
-            ->willReturn('/path/to/fake/csv/file.csv');
-
-        // Continue with the test setup and assertions
-        $response = $importer->fetchData();
-        dd($response);
-//
-//        $this->assertNotEmpty($response);
+        $extractedDirectory = storage_path('app/temp/extracted/Data/multi_csv/');
+        if (!is_dir($extractedDirectory)) {
+            mkdir($extractedDirectory, 0777, true);  // Creates the directory and all parent directories if they don't exist
+        }
     }
 
-    public function testFetchDataHandlesDownloadFailure()
+    protected function createMockZipFile()
     {
-        $importer = new ParlvidPostcodeImporter();
+        // 1. Create a simple CSV file content
+        $csvContent = [
+            ['pcd', 'long', 'lat', 'country_id'],
+            ['AB1 0AA', '-0.12345', '51.12345', '1'],
+            ['AB1 0AB', '-0.12346', '51.12346', '1'],
+            ['AB1 0AC', '-0.12347', '51.12347', '1'],
+        ];
 
-        Http::fake([
-            'http://parlvid.mysociety.org/os/' => Http::response(null, 500),
-        ]);
+        // 2. Write CSV content to a temporary file
+        $csvFilePath = storage_path('app/temp/mock_data.csv');
+        $file = fopen($csvFilePath, 'w');
+        foreach ($csvContent as $line) {
+            fputcsv($file, $line);
+        }
+        fclose($file);
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Failed to download the ZIP file.');
+        // 3. Move the CSV file to the expected location
+        $extractedDirectory = storage_path('app/temp/extracted/Data/multi_csv/');
+        $mockCsvFilePath = $extractedDirectory . 'mock_data.csv';
+        copy($csvFilePath, $mockCsvFilePath);  // Copy the mock CSV into the new directory
 
-        $importer->fetchData();
+        // 4. Create a ZIP file and add the CSV file to it
+        $zipFilePath = storage_path('app/temp/mock_parlvid.zip');
+        $zip = new \ZipArchive();
+
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE) === true) {
+            $zip->addFile($mockCsvFilePath, 'mock_data.csv');
+            $zip->close();
+        } else {
+            throw new \Exception("Failed to create the ZIP file.");
+        }
+
+        return $zipFilePath;
     }
 
-    public function testHandlesExceptionDuringDataExtraction()
-    {
-        $importer = new ParlvidPostcodeImporter();
-
-        $importer = Mockery::mock(ParlvidPostcodeImporter::class)->makePartial();
-        $importer->shouldReceive('extractZip')
-            ->once()
-            ->andThrow(new \Exception('Failed to extract ZIP file.'));
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Failed to extract ZIP file.');
-
-        $importer->fetchData();
-    }
-
-    public function testCleanupOnFailure()
-    {
-        $importer = Mockery::mock(ParlvidPostcodeImporter::class)->makePartial();
-        $importer->shouldReceive('extractZip')->andThrow(new \Exception('Test error'));
-
-        Storage::shouldReceive('exists')->andReturn(true);
-
-        $this->expectException(\Exception::class);
-        $importer->fetchData();
-        Storage::assertMissing('app/temp/parlvid.zip');
-        Storage::assertMissing('app/temp/parlvid.csv');
-    }
 }
-

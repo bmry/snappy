@@ -5,16 +5,61 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRequest;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use MatanYadaev\EloquentSpatial\Objects\Point;
+
+
+
+/**
+ * @OA\Info(
+ *     title="Store API",
+ *     version="1.0.0",
+ *     description="This is the API for managing stores."
+ * )
+ */
+
+
 
 class CreateStoreControllerAction
 {
     /**
-     * Handle the incoming request to add a new store.
-     *
-     * @param StoreRequest $request
-     * @return JsonResponse
+     * @OA\Post(
+     *     path="/api/stores",
+     *     summary="Create a new store",
+     *     tags={"Store"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name", "location", "status", "type", "max_delivery_distance"},
+     *             @OA\Property(property="name", type="string", description="Name of the store"),
+     *             @OA\Property(property="location", type="array", @OA\Items(type="number"), description="Geographical location of the store [longitude, latitude]"),
+     *             @OA\Property(property="status", type="string", description="Status of the store"),
+     *             @OA\Property(property="type", type="string", description="Type of the store"),
+     *             @OA\Property(property="max_delivery_distance", type="integer", description="Maximum delivery distance in meters")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Store created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Store created successfully."),
+     *             @OA\Property(property="store", type="object",
+     *                 @OA\Property(property="id", type="integer", example="1"),
+     *                 @OA\Property(property="name", type="string", example="Store Name"),
+     *                 @OA\Property(property="location", type="array", @OA\Items(type="number"), example={-0.1276, 51.5074}),
+     *                 @OA\Property(property="status", type="string", example="open"),
+     *                 @OA\Property(property="type", type="string", example="grocery"),
+     *                 @OA\Property(property="max_delivery_distance", type="integer", example=5000)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid input data",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Invalid input")
+     *         )
+     *     )
+     * )
      */
     public function __invoke(StoreRequest $request): JsonResponse
     {

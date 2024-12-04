@@ -14,6 +14,12 @@ class UniqueCoordinatesAndStoreName implements Rule
         $location = request('location');
         $name = request('name');
 
+        $location = request('location');
+        if (!is_numeric($location[0]) || !is_numeric($location[1])) {
+            return false;
+        }
+
+
         $location = new Point($location[0], $location[1]);
 
         $store = Store::query()
