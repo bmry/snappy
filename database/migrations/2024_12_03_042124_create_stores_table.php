@@ -20,7 +20,7 @@ return new class extends Migration
             $table->integer('max_delivery_distance');
             $table->timestamps();
 
-            $table->spatialIndex('location'); // Index for geospatial queries
+            $table->spatialIndex('location');
         });
     }
 

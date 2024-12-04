@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
-class CreateStoreControllerAction extends Controller
+class CreateStoreControllerAction
 {
     /**
      * Handle the incoming request to add a new store.
