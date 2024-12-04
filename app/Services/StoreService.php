@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 
 class StoreService
 {
+    const ASSUMED_CLOSENESS_RADIUS = 5000;
     /**
      * Get nearby stores based on postcode and radius.
      *
@@ -21,7 +22,7 @@ class StoreService
      * @param int $perPage
      * @return array
      */
-    public function getNearbyStores(string $postcode, int $radius = 5000, string $delivery = 'false', int $perPage = 10): array
+    public function getNearbyStores(string $postcode, int $radius, string $delivery = 'false', int $perPage = 10): array
     {
         $cacheKey = 'stores_near_' . $postcode;
 

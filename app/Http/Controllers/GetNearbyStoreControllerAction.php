@@ -107,7 +107,7 @@ class GetNearbyStoreControllerAction
         try {
             $responseData = $this->storeService->getNearbyStores(
                 $validatedData['postcode'],
-                $validatedData['radius'] ?? 5000,
+                $validatedData['radius'] ?? StoreService::ASSUMED_CLOSENESS_RADIUS,
                 $validatedData['delivery'] ?? 'false',
                 $validatedData['per_page'] ?? 10
             );
