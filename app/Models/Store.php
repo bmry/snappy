@@ -22,9 +22,4 @@ class Store extends Model
         'location' => Point::class,
         'max_delivery_distance' => 'float',
     ];
-
-    public function isOpen(): bool
-    {
-        return $this->status === 'open';
-    }
 }

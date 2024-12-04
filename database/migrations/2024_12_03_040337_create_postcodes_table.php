@@ -12,10 +12,16 @@ return new class extends Migration
     public function up()
     {
         Schema::create('postcodes', function (Blueprint $table) {
-            $table->string('postcode')->primary();  // This assumes 'postcode' is the unique key
+            $table->id();
+            $table->string('postcode')->unique();
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
+            $table->unsignedBigInteger('country_id');
             $table->timestamps();
+
+            $table->index(['postcode', 'country_id']);
+
+            $table->foreign('country_id')->references('id')->on('countries')->onDelete('cascade');
         });
     }
 
@@ -24,6 +30,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        \Illuminate\Support\Facades\DB::Statement("SET FOREIGN_KEY_CHECKS=0");
         Schema::dropIfExists('postcodes');
+        \Illuminate\Support\Facades\DB::Statement("SET FOREIGN_KEY_CHECKS=1");
     }
 };

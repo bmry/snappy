@@ -4,11 +4,12 @@ namespace App\DataSource;
 
 use App\Contract\AbstractPostcodeImporter;
 use App\Imports\PostcodesImport;
+use App\Models\Country;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
-class ParlvidPostcodeImporter extends AbstractPostcodeImporter
+final class ParlvidPostcodeImporter extends AbstractPostcodeImporter
 {
     const IDENTIFIER = 'parlvid';
     const DATASOURCE = 'https://parlvid.mysociety.org/os/ONSPD/2022-11.zip';
@@ -67,6 +68,7 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
                     }
 
                     $rowAssoc = array_combine($headers, $row);
+                    $rowAssoc['country_id'] = Country::getByCodeWithCache('GB')->id;
                     $chunk[] = $rowAssoc;
 
                     if (count($chunk) >= $chunkSize) {
@@ -143,7 +145,8 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
         return [
             'postcode' => 'pcd',
             'longitude' => 'long',
-            'latitude' => 'lat'
+            'latitude' => 'lat',
+            'country_id' => 'country_id'
         ];
     }
 }

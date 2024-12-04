@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Postcode extends Model
 {
-    protected $fillable = ['postcode', 'latitude', 'longitude'];
-
+    protected $fillable = ['postcode', 'latitude', 'longitude', 'country_id'];
 
 }

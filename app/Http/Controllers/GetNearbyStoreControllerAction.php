@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreNearbyRequest;
 use App\Models\Postcode;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
@@ -11,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
-class FindStoreByPostcodeControllerAction
+class GetNearbyStoreControllerAction
 {
     /**
      * Handle the incoming request to return stores near a given postcode.
@@ -27,9 +26,9 @@ class FindStoreByPostcodeControllerAction
 
         $cachedStores = Cache::get($cacheKey);
 
-//        if ($cachedStores) {
-//            return response()->json($cachedStores);
-//        }
+        if ($cachedStores) {
+            return response()->json($cachedStores);
+        }
 
         $postcodeRecord = Postcode::where('postcode', $postcode)->first();
 
@@ -39,6 +38,7 @@ class FindStoreByPostcodeControllerAction
             ], 404);
         }
 
+
         $latitude = $postcodeRecord->latitude;
         $longitude = $postcodeRecord->longitude;
         $location = new Point($latitude, $longitude);
@@ -46,11 +46,23 @@ class FindStoreByPostcodeControllerAction
         //Default to 5km or 5000m radius if radius is not provided by user.
         $radius = $request->get('radius', 5000);
 
-        $stores = Store::query()
-            ->withDistanceSphere('location', $location)
-            ->whereDistanceSphere('location', $location, '<=', $radius)
-            ->orderBy('distance')
-            ->cursorPaginate(10);
+        if ($request->has('delivery') && 'true' === $request->get('delivery') ) {
+
+            $stores = Store::query()
+                ->withDistanceSphere('location', $location)
+                    ->whereRaw('ST_Distance_Sphere(location, ST_GeomFromText(?, 0)) <= max_delivery_distance', [
+                        $location->toWkt()
+                    ])
+                ->orderBy('distance')
+                ->cursorPaginate(10);
+        } else {
+
+            $stores = Store::query()
+                ->withDistanceSphere('location', $location)
+                ->whereDistanceSphere('location', $location, '<=', $radius)
+                ->orderBy('distance')
+                ->cursorPaginate(10);
+        }
 
         $responseData = [
             'message' => 'Stores retrieved successfully.',

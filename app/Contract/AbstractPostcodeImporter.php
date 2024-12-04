@@ -3,12 +3,14 @@
 namespace App\Contract;
 
 use App\Jobs\PostCodeImportJob;
+use App\Models\Country;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 
 abstract class AbstractPostcodeImporter
 {
+    protected string $countryCode;
     /**
      * Imports the data by processing each chunk, normalizing it, and dispatching a job.
      * Logs any errors encountered during the import process.
@@ -54,9 +56,10 @@ abstract class AbstractPostcodeImporter
 
         return $rawData->map(function ($item) use ($mapper) {
             return [
-                'postcode'  => strtoupper($item[$mapper['postcode']]),
+                'postcode' => strtoupper(str_replace(' ', '', $item[$mapper['postcode']])),
                 'latitude'  => (float) $item[$mapper['latitude']],
                 'longitude' => (float) $item[$mapper['longitude']],
+                'country_id' => (int)$item[$mapper['country_id']]
             ];
         });
     }
@@ -69,7 +72,8 @@ abstract class AbstractPostcodeImporter
      * [
      *      'postcode' => 'postcode',
      *      'longitude' => 'lat',
-     *      'latitude' => 'lon'
+     *      'latitude' => 'lon',
+     *      'country_code' => 'country_code' // e.g Alpha-2 codes US, UK
      * ]
      *
      * Implementing classes must define this method to provide the specific key mapping
@@ -79,5 +83,4 @@ abstract class AbstractPostcodeImporter
      *               to their respective keys in the data.
      */
     abstract protected function getMapper();
-
 }
