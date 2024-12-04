@@ -1,16 +1,17 @@
 <?php
 
-namespace App\Contract;
+declare(strict_types=1);
+
+namespace App\PostCodeImporter;
 
 use App\Jobs\PostCodeImportJob;
-use App\Models\Country;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-
 
 abstract class AbstractPostcodeImporter
 {
     protected string $countryCode;
+
     /**
      * Imports the data by processing each chunk, normalizing it, and dispatching a job.
      * Logs any errors encountered during the import process.
@@ -19,16 +20,15 @@ abstract class AbstractPostcodeImporter
      */
     public function import(): void
     {
-
         foreach ($this->fetchData() as $chunk) {
             try {
                 $chunkedData = collect($chunk);
                 $validatedData = $this->normalizeData($chunkedData);
                 PostCodeImportJob::dispatch($validatedData);
             } catch (\Exception $e) {
-                Log::error("Failed to dispatch job for a chunk of data", [
+                Log::error('Failed to dispatch job for a chunk of data', [
                     'error' => $e->getMessage(),
-                    'chunk' => $chunk
+                    'chunk' => $chunk,
                 ]);
             }
         }
@@ -37,9 +37,10 @@ abstract class AbstractPostcodeImporter
     /**
      * Fetch the raw data from the external source.
      * This should be implemented in child classes.
+     *
+     * @return mixed
      */
-    abstract protected function fetchData();
-
+    abstract protected function fetchData(): mixed;
 
     /**
      * Normalize the raw data by mapping the values to a standard format.
@@ -56,10 +57,10 @@ abstract class AbstractPostcodeImporter
 
         return $rawData->map(function ($item) use ($mapper) {
             return [
-                'postcode' => strtoupper(str_replace(' ', '', $item[$mapper['postcode']])),
+                'postcode'  => strtoupper(str_replace(' ', '', $item[$mapper['postcode']])),
                 'latitude'  => (float) $item[$mapper['latitude']],
                 'longitude' => (float) $item[$mapper['longitude']],
-                'country_id' => (int)$item[$mapper['country_id']]
+                'country_id' => (int) $item[$mapper['country_id']],
             ];
         });
     }
@@ -73,7 +74,7 @@ abstract class AbstractPostcodeImporter
      *      'postcode' => 'postcode',
      *      'longitude' => 'lat',
      *      'latitude' => 'lon',
-     *      'country_code' => 'country_code' // e.g Alpha-2 codes US, UK
+     *      'country_code' => 'country_code' // e.g Alpha-2 codes US, GB
      * ]
      *
      * Implementing classes must define this method to provide the specific key mapping
@@ -82,5 +83,5 @@ abstract class AbstractPostcodeImporter
      * @return array The mapping array that associates 'postcode', 'longitude', and 'latitude'
      *               to their respective keys in the data.
      */
-    abstract protected function getMapper();
+    abstract protected function getMapper(): array;
 }

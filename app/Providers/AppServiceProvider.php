@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Contract\AbstractPostcodeImporter;
-use App\DataSource\ParlvidPostcodeImporter;
+use App\PostCodeImporter\AbstractPostcodeImporter;
+use App\PostCodeImporter\ParlvidPostcodeImporter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -13,8 +13,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(AbstractPostcodeImporter::class, ParlvidPostcodeImporter::class);
-
     }
 
     /**
@@ -22,6 +20,5 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
     }
 }

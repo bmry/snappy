@@ -1,13 +1,12 @@
 <?php
 
-namespace App\DataSource;
+declare(strict_types=1);
 
-use App\Contract\AbstractPostcodeImporter;
+namespace App\PostCodeImporter;
+
 use App\Models\Country;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Psr\Http\Message\StreamInterface;
 
 class ParlvidPostcodeImporter extends AbstractPostcodeImporter
 {
@@ -33,7 +32,7 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
      * @return \Generator The data chunks after importing from the CSV.
      * @throws \Exception If the download, extraction, or import fails.
      */
-    public function fetchData()
+    public function fetchData():mixed
     {
         $zipFilePath = storage_path('app/temp/parlvid.zip');
 
@@ -160,7 +159,7 @@ class ParlvidPostcodeImporter extends AbstractPostcodeImporter
         throw new \Exception('Failed to open the ZIP file.');
     }
 
-    protected function getMapper()
+    protected function getMapper(): array
     {
         return [
             'postcode' => 'pcd',

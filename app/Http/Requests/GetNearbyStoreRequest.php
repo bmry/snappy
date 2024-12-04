@@ -1,5 +1,8 @@
 <?php
 
+
+declare(strict_types=1);
+
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -22,9 +25,11 @@ class GetNearbyStoreRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation by trimming whitespace.
+     * Prepare user inputted postcode for validation by trimming unnecessary spaces.
+     *
+     * @return void
      */
-    protected function prepareForValidation()
+    protected function prepareForValidation(): void
     {
         $this->merge([
             'postcode' => str_replace(' ', '', $this->postcode),

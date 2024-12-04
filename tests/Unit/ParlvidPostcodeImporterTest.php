@@ -3,15 +3,12 @@
 
 namespace Tests\Unit;
 
-use App\DataSource\ParlvidPostcodeImporter;
 use App\Models\Country;
+use App\PostCodeImporter\ParlvidPostcodeImporter;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 use Tests\TestCase;
 
 class ParlvidPostcodeImporterTest extends TestCase

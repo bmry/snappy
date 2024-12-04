@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Postcode;
 use App\Models\Store;
+use Illuminate\Contracts\Pagination\CursorPaginator;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 use Illuminate\Support\Facades\Cache;
 
@@ -57,9 +60,9 @@ class StoreService
      * @param int $radius
      * @param bool $delivery
      * @param int $perPage
-     * @return \Illuminate\Contracts\Pagination\CursorPaginator
+     * @return CursorPaginator
      */
-    protected function fetchStores(Point $location, int $radius, bool $delivery, int $perPage)
+    protected function fetchStores(Point $location, int $radius, bool $delivery, int $perPage): CursorPaginator
     {
         if ($delivery) {
             return Store::query()
