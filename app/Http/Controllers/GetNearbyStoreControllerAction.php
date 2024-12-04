@@ -7,7 +7,6 @@ use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
 class GetNearbyStoreControllerAction
@@ -47,7 +46,6 @@ class GetNearbyStoreControllerAction
         $radius = $request->get('radius', 5000);
 
         if ($request->has('delivery') && 'true' === $request->get('delivery') ) {
-
             $stores = Store::query()
                 ->withDistanceSphere('location', $location)
                     ->whereRaw('ST_Distance_Sphere(location, ST_GeomFromText(?, 0)) <= max_delivery_distance', [
@@ -56,12 +54,12 @@ class GetNearbyStoreControllerAction
                 ->orderBy('distance')
                 ->cursorPaginate(10);
         } else {
-
             $stores = Store::query()
                 ->withDistanceSphere('location', $location)
                 ->whereDistanceSphere('location', $location, '<=', $radius)
                 ->orderBy('distance')
                 ->cursorPaginate(10);
+
         }
 
         $responseData = [
@@ -73,7 +71,7 @@ class GetNearbyStoreControllerAction
             ]
         ];
 
-        Cache::put($cacheKey, $responseData, now()->addMinutes(10));
+        Cache::put($cacheKey, $responseData, now()->addMinutes(1));
 
         return response()->json($responseData);
     }

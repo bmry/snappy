@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\UniqueCoordinatesAndStoreName;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRequest extends FormRequest
@@ -23,11 +24,16 @@ class StoreRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'location' => 'required|array|size:2',
             'location.*' => 'numeric',
             'status' => 'required|in:open,closed',
             'type' => 'required|in:takeaway,shop,restaurant',
             'max_delivery_distance' => 'required|integer|min:1',
+            'location' => [
+                'required',
+                'array',
+                'size:2',
+                new UniqueCoordinatesAndStoreName(),
+            ],
         ];
     }
 
