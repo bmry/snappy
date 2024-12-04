@@ -1,4 +1,4 @@
-# My Application Setup Instructions
+## Snappy App
 
 ## Table of Contents
 
