@@ -13,9 +13,9 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
 
 /**
  * @OA\Info(
- *     title="Store API",
+ *     title="Snappy App",
  *     version="1.0.0",
- *     description="This is the API for managing stores."
+ *     description="Store management API "
  * )
  */
 

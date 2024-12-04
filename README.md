@@ -3,9 +3,8 @@
 ## Table of Contents
 
 - [Setup and Installation](#setup-and-installation)
-- [Postcode Import](#postcode-import)
 - [Job Processing](#job-processing)
-- [Caching](#caching)
+- [Postcode Import](#postcode-import)
 - [API Documentation](#api-documentation)
 - [Testing](#testing)
 
@@ -27,17 +26,21 @@ cd snappy
 # Run migration
 ./vendor/bin/sail exec snappy-app php artisan migrate    
 
+```
+### API Documentation
+[Click here to open API documentation](http://localhost/api/documentation)
+### Job Processing
+```bash
 # Open a new terminal and start the queue
 ./vendor/bin/sail exec snappy-app  php artisan queue:work
 ```
-
 ### Postcode Import
 ```bash
 # In a new terminal, run the postcode command
-./vendor/bin/sail artisan postcodes:import
+./vendor/bin/sail exec snappy-app  php artisan postcodes:import
 ```
 
 ### Testing
 ```bash
-./vendor/bin/sail artisan test
+./vendor/bin/sail exec snappy-app  php artisan test
 ```
